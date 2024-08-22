@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Список URL</title>
+</head>
+<body>
+    <h1>Список добавленных URL</h1>
+    <ul>
+        {% for url in urls %}
+        <li><a href="{{ url[0] }}">{{ url[1] }}</a> (ID: {{ url[0] }})</li>
+        {% endfor %}
+    </ul>
+    <a href="/">Назад на главную</a>
+</body>
+</html>
