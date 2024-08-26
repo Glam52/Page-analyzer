@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>URL</title>
+</head>
+<body>
+    <h1>URL: {{ url[1] }}</h1>
+    <p>ID: {{ url[0] }}</p>
+
+    <h2>Проверки</h2>
+    <ul>
+        {% for check in checks %}
+            <li>ID: {{ check[0] }}, Дата: {{ check[1] }}</li>
+        {% endfor %}
+    </ul>
+
+    <a href="/urls">Назад к списку URL</a>
+
+    <form action="{{ url_for('create_check', id=url[0]) }}" method="POST">
+        <button type="submit">Проверить URL</button>
+    </form>
+</body>
+</html>

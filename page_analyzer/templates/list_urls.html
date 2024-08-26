@@ -8,9 +8,18 @@
     <h1>Список добавленных URL</h1>
     <ul>
         {% for url in urls %}
-        <li><a href="{{ url[0] }}">{{ url[1] }}</a> (ID: {{ url[0] }})</li>
+        <li>
+            <a href="{{ url_for('show_url', id=url[0]) }}">{{ url[1] }}</a> (ID: {{ url[0] }})
+
+            {% if url[2] %}
+                - Последняя проверка: {{ url[2] }}
+            {% else %}
+                - Нет проверок
+            {% endif %}
+        </li>
         {% endfor %}
     </ul>
     <a href="/">Назад на главную</a>
 </body>
 </html>
+
