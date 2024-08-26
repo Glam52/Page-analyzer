@@ -11,7 +11,7 @@
     <h2>Проверки</h2>
     <ul>
         {% for check in checks %}
-            <li>ID: {{ check[0] }}, Дата: {{ check[1] }}</li>
+            <li>ID: {{ check[0] }}, Дата: {{ check[1] }}, Код ответа: {{ check[2] }}</li>
         {% endfor %}
     </ul>
 
@@ -20,5 +20,15 @@
     <form action="{{ url_for('create_check', id=url[0]) }}" method="POST">
         <button type="submit">Проверить URL</button>
     </form>
+
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <ul class="flashes">
+                {% for message in messages %}
+                    <li>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
 </body>
 </html>
