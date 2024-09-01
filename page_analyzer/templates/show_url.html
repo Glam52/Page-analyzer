@@ -11,9 +11,14 @@
     <h2>Проверки</h2>
     <ul>
         {% for check in checks %}
-            <li>ID: {{ check[0] }}, Дата: {{ check[1] }}, Код ответа: {{ check[2] }}</li>
+            <li>ID: {{ check[0] }}, Дата: {{ check[1] }}, Код ответа: {{ check[2] }},
+                H1: {{ check[3] if check[3] else 'Нет H1' }},
+                Title: {{ check[4] if check[4] else 'Нет Title' }},
+                Описание: {{ check[5] if check[5] else 'Нет описания' }}
+            </li>
         {% endfor %}
     </ul>
+
 
     <a href="/urls">Назад к списку URL</a>
 
