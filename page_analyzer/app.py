@@ -46,13 +46,23 @@ def add_url():
     # Добавление URL в БД
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute("INSERT INTO urls (name) VALUES (%s)", (url,))
+
+    # Проверяем, существует ли URL в БД
+    cur.execute("SELECT id FROM urls WHERE name = %s", (url,))
+    existing_url = cur.fetchone()
+
+    if existing_url:
+        return redirect(f"/urls/{existing_url[0]}")
+
+    # Добавление нового URL в БД
+    cur.execute("INSERT INTO urls (name) VALUES (%s) RETURNING id", (url,))
+    new_url_id = cur.fetchone()[0]
     conn.commit()
     cur.close()
     conn.close()
 
     flash("URL успешно добавлен!")
-    return redirect("/")
+    return redirect(f"/urls/{new_url_id}")
 
 
 def list_urls():
