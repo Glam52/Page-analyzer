@@ -10,7 +10,7 @@ from datetime import datetime
 
 
 # Загружаем переменные окружения из файла secret.env
-load_dotenv("secret.env")
+load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "blablabla")
 # Настройки подключения к базе данных
