@@ -5,8 +5,6 @@ import re
 import requests
 from dotenv import load_dotenv
 from bs4 import BeautifulSoup
-from datetime import datetime
-
 
 
 # Загружаем переменные окружения из файла secret.env
@@ -15,8 +13,10 @@ app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "blablabla")
 # Настройки подключения к базе данных
 DATABASE_URL = os.environ.get(
-    "DATABASE_URL", default="postgresql://postgres:postgres@localhost:5432/hexlet"
+    "DATABASE_URL",
+    default="postgresql://postgres:postgres@localhost:5432/hexlet",
 )
+
 
 # Функция для получения соединения с базой данных
 def get_db_connection():
@@ -101,15 +101,27 @@ def show_url(id):
     url = (url[0], url[1], created_at_formatted)
     # Получение всех проверок по url_id
     cur.execute(
-        "SELECT id, created_at, status_code, h1, title, description FROM url_checks WHERE url_id = %s ORDER BY created_at DESC",
+        "SELECT id,"
+        " created_at,"
+        " status_code,"
+        " h1,"
+        " title,"
+        " description"
+        " FROM url_checks"
+        " WHERE url_id = %s"
+        " ORDER BY created_at DESC",
         (id,),
     )
     checks = cur.fetchall()
 
     # Форматирование даты для проверок
     for i in range(len(checks)):
-        checks[i] = list(checks[i])  # Преобразуем кортеж в список для мутабельности
-        checks[i][1] = checks[i][1].strftime("%Y-%m-%d")  # Форматируем created_at
+        checks[i] = list(
+            checks[i]
+        )  # Преобразуем кортеж в список для мутабельности
+        checks[i][1] = checks[i][1].strftime(
+            "%Y-%m-%d"
+        )  # Форматируем created_at
 
     cur.close()
     conn.close()
@@ -142,12 +154,24 @@ def create_check(id):
         title_content = soup.title.text.strip() if soup.title else None
         description_content = ""
         description_tag = soup.find("meta", attrs={"name": "description"})
-        if description_tag and 'content' in description_tag.attrs:
+        if description_tag and "content" in description_tag.attrs:
             description_content = description_tag["content"].strip()
 
         cur.execute(
-            "INSERT INTO url_checks (url_id, status_code, h1, title, description) VALUES (%s, %s, %s, %s, %s) RETURNING id, created_at;",
-            (id, response.status_code, h1_content, title_content, description_content)
+            "INSERT INTO url_checks (url_id,"
+            " status_code,"
+            " h1,"
+            " title,"
+            " description)"
+            " VALUES (%s, %s, %s, %s, %s)"
+            " RETURNING id, created_at;",
+            (
+                id,
+                response.status_code,
+                h1_content,
+                title_content,
+                description_content,
+            ),
         )
         check_id, created_at = cur.fetchone()
         flash("Проверка выполнена успешно!")
@@ -162,7 +186,6 @@ def create_check(id):
         conn.close()
 
     return redirect(f"/urls/{id}")
-
 
 
 if __name__ == "__main__":
