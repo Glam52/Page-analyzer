@@ -5,6 +5,7 @@ import re
 import requests
 from dotenv import load_dotenv
 from bs4 import BeautifulSoup
+from datetime import datetime
 
 
 
@@ -40,8 +41,8 @@ def add_url():
 
     # Валидация
     if len(url) > 255 or not re.match(r"^https?://", url):
-        flash("Некорректный URL.")
-        return redirect("/urls")
+        flash("Некорректный URL")
+        return render_template("index.html")
 
     # Добавление URL в БД
     conn = get_db_connection()
@@ -52,6 +53,7 @@ def add_url():
     existing_url = cur.fetchone()
 
     if existing_url:
+        flash("Страница уже существует.")
         return redirect(f"/urls/{existing_url[0]}")
 
     # Добавление нового URL в БД
@@ -61,7 +63,7 @@ def add_url():
     cur.close()
     conn.close()
 
-    flash("URL успешно добавлен!")
+    flash("Страница успешно добавлена")
     return redirect(f"/urls/{new_url_id}")
 
 
@@ -94,12 +96,21 @@ def show_url(id):
     if url is None:
         abort(404)
 
+    # Преобразуем дату в строку формата 'YYYY-MM-DD'
+    created_at_formatted = url[2].strftime("%Y-%m-%d")
+    url = (url[0], url[1], created_at_formatted)
     # Получение всех проверок по url_id
     cur.execute(
         "SELECT id, created_at, status_code, h1, title, description FROM url_checks WHERE url_id = %s ORDER BY created_at DESC",
         (id,),
     )
     checks = cur.fetchall()
+
+    # Форматирование даты для проверок
+    for i in range(len(checks)):
+        checks[i] = list(checks[i])  # Преобразуем кортеж в список для мутабельности
+        checks[i][1] = checks[i][1].strftime("%Y-%m-%d")  # Форматируем created_at
+
     cur.close()
     conn.close()
 
