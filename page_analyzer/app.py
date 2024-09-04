@@ -53,7 +53,7 @@ def add_url():
     existing_url = cur.fetchone()
 
     if existing_url:
-        flash("Страница уже существует.")
+        flash("Страница уже существует")
         return redirect(f"/urls/{existing_url[0]}")
 
     # Добавление нового URL в БД
@@ -173,10 +173,10 @@ def create_check(id):
             ),
         )
         check_id, created_at = cur.fetchone()
-        flash("Проверка выполнена успешно!")
+        flash("Страница успешно проверена")
 
     except requests.RequestException:
-        flash("Произошла ошибка при проверке URL.")
+        flash("Произошла ошибка при проверке")
     except Exception as e:
         flash(f"Произошла неожиданная ошибка: {str(e)}")
     finally:
