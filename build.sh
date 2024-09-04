@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-# Postgres позволяет подключиться к удаленной базе указав ссылку на нее после флага -d
-# ссылка подгрузится из переменной окружения, которую нам нужно будет указать на сервисе деплоя
-# дальше мы загружаем в поключенную базу наш sql-файл с таблицами
-make install && psql -a -d $DATABASE_URL -f database.sql
+# Установите переменную DATABASE_URL непосредственно в скрипте
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/hexlet"
+
+# Выполните команды, используя эту переменную
+make install && psql -a -d "$DATABASE_URL" -f database.sql
