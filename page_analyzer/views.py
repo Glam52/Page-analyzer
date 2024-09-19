@@ -1,6 +1,7 @@
 from flask import render_template, request, redirect, abort
 from url_manager import URLManager
 
+
 class AppViews:
     @staticmethod
     def home():

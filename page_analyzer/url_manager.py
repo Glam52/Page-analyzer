@@ -35,13 +35,15 @@ class URLManager:
     def list_urls():
         conn = Database.get_connection()
         cur = conn.cursor()
-        cur.execute("""
+        cur.execute(
+            """
             SELECT urls.id, urls.name, MAX(url_checks.created_at) AS last_check, 
             MAX(url_checks.status_code) AS status_code FROM urls
             LEFT JOIN url_checks ON urls.id = url_checks.url_id
             GROUP BY urls.id
             ORDER BY urls.created_at DESC
-        """)
+        """
+        )
         urls = cur.fetchall()
         cur.close()
         conn.close()
@@ -103,7 +105,13 @@ class URLManager:
             cur.execute(
                 "INSERT INTO url_checks (url_id, status_code, h1, title, description) "
                 "VALUES (%s, %s, %s, %s, %s) RETURNING id, created_at;",
-                (id, response.status_code, h1_content, title_content, description_content),
+                (
+                    id,
+                    response.status_code,
+                    h1_content,
+                    title_content,
+                    description_content,
+                ),
             )
             check_id, created_at = cur.fetchone()
             flash("Страница успешно проверена")
