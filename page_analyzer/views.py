@@ -1,5 +1,6 @@
-from flask import render_template, request, redirect, abort
+from flask import render_template, request, redirect, abort, jsonify
 from page_analyzer.url_manager import URLManager
+import re
 
 
 class AppViews:
@@ -11,6 +12,10 @@ class AppViews:
     def urls():
         if request.method == "POST":
             url = request.form["url"]
+            # Проверка на валидность URL с использованием регулярного выражения
+            if not re.match(r'^(?:http|ftp)s?://', url):
+                return jsonify({"error": "Invalid URL"}), 422  # Возвращаем статус 422 при ошибке
+
             new_url_id = URLManager.add_url(url)
             if new_url_id:
                 return redirect(f"/urls/{new_url_id}")
