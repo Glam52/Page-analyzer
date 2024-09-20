@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, render_template
 from page_analyzer.config import Config
 from page_analyzer.views import AppViews
 
@@ -26,6 +26,11 @@ def show_url(id):
 def create_check(id):
     return AppViews.create_check(id)
 
+
+# Обработчик для ошибки 422
+@app.errorhandler(422)
+def handle_422_error(e):
+    return render_template("index.html"), 422
 
 if __name__ == "__main__":
     app.run(debug=True)
