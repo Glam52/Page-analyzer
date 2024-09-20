@@ -3,26 +3,42 @@ from flask import flash
 from bs4 import BeautifulSoup
 import requests
 from page_analyzer.database import Database
+from urllib.parse import urlparse, urlunparse
 
 
 class URLManager:
+    @staticmethod
+    def normalize_url(url):
+        parsed_url = urlparse(url)
+        # Игнорируем путь, используем только схему и сетевую часть
+        normalized_url = urlunparse((
+            parsed_url.scheme,
+            parsed_url.netloc,
+            '',  # путь игнорируется
+            '', '', ''  # параметры, запросы, фрагменты очищены
+        ))
+        return normalized_url
+
     @staticmethod
     def add_url(url):
         if len(url) > 255 or not re.match(r"^https?://", url):
             flash("Некорректный URL")
             return None
 
+        # Нормализация URL
+        normalized_url = URLManager.normalize_url(url)
+
         conn = Database.get_connection()
         cur = conn.cursor()
 
-        cur.execute("SELECT id FROM urls WHERE name = %s", (url,))
+        cur.execute("SELECT id FROM urls WHERE name = %s", (normalized_url,))
         existing_url = cur.fetchone()
 
         if existing_url:
             flash("Страница уже существует")
             return existing_url[0]
 
-        cur.execute("INSERT INTO urls (name) VALUES (%s) RETURNING id", (url,))
+        cur.execute("INSERT INTO urls (name) VALUES (%s) RETURNING id", (normalized_url,))
         new_url_id = cur.fetchone()[0]
         conn.commit()
         cur.close()
