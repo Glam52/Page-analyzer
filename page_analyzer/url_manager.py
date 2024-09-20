@@ -2,7 +2,7 @@ import re
 from flask import flash
 from bs4 import BeautifulSoup
 import requests
-from database import Database
+from page_analyzer.database import Database
 
 
 class URLManager:

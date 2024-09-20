@@ -1,6 +1,7 @@
 from flask import Flask
-from config import Config
-from views import AppViews
+from page_analyzer.config import Config
+from page_analyzer.views import AppViews
+
 
 app = Flask(__name__)
 app.config.from_object(Config)

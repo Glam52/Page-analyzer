@@ -1,5 +1,5 @@
 from flask import render_template, request, redirect, abort
-from url_manager import URLManager
+from page_analyzer.url_manager import URLManager
 
 
 class AppViews:

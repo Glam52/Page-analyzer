@@ -1,5 +1,5 @@
 import psycopg2
-from config import Config
+from page_analyzer.config import Config
 
 
 class Database:
