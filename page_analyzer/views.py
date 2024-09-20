@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, abort, flash
+from flask import render_template, request, redirect, abort, flash
 from page_analyzer.url_manager import URLManager
 import re
 
@@ -13,7 +13,7 @@ class AppViews:
         if request.method == "POST":
             url = request.form["url"]
             # Проверка на валидность URL
-            if not re.match(r'^(?:http|ftp)s?://', url):
+            if not re.match(r"^(?:http|ftp)s?://", url):
                 flash("Некорректный URL")  # Добавляем флеш-сообщение
                 abort(422)  # Генерируем ошибку 422
 

@@ -11,12 +11,16 @@ class URLManager:
     def normalize_url(url):
         parsed_url = urlparse(url)
         # Игнорируем путь, используем только схему и сетевую часть
-        normalized_url = urlunparse((
-            parsed_url.scheme,
-            parsed_url.netloc,
-            '',  # путь игнорируется
-            '', '', ''  # параметры, запросы, фрагменты очищены
-        ))
+        normalized_url = urlunparse(
+            (
+                parsed_url.scheme,
+                parsed_url.netloc,
+                "",  # путь игнорируется
+                "",
+                "",
+                "",  # параметры, запросы, фрагменты очищены
+            )
+        )
         return normalized_url
 
     @staticmethod
@@ -38,7 +42,11 @@ class URLManager:
             flash("Страница уже существует")
             return existing_url[0]
 
-        cur.execute("INSERT INTO urls (name) VALUES (%s) RETURNING id", (normalized_url,))
+        cur.execute(
+            "INSERT INTO urls (name)"
+            " VALUES (%s) RETURNING id",
+            (normalized_url,)
+        )
         new_url_id = cur.fetchone()[0]
         conn.commit()
         cur.close()
@@ -52,13 +60,14 @@ class URLManager:
         conn = Database.get_connection()
         cur = conn.cursor()
         cur.execute(
-            """
-            SELECT urls.id, urls.name, MAX(url_checks.created_at) AS last_check, 
-            MAX(url_checks.status_code) AS status_code FROM urls
-            LEFT JOIN url_checks ON urls.id = url_checks.url_id
-            GROUP BY urls.id
-            ORDER BY urls.created_at DESC
-        """
+            "SELECT urls.id, "
+            "urls.name, "
+            "MAX(url_checks.created_at) AS last_check, "
+            "MAX(url_checks.status_code) AS status_code "
+            "FROM urls "
+            "LEFT JOIN url_checks ON urls.id = url_checks.url_id "
+            "GROUP BY urls.id "
+            "ORDER BY urls.created_at DESC"
         )
         urls = cur.fetchall()
         cur.close()
@@ -111,7 +120,9 @@ class URLManager:
             response.raise_for_status()
 
             soup = BeautifulSoup(response.content, "html.parser")
-            h1_content = soup.find("h1").text.strip() if soup.find("h1") else None
+            h1_content = soup.find("h1").text.strip()\
+                if soup.find("h1")\
+                else None
             title_content = soup.title.text.strip() if soup.title else None
             description_content = ""
             description_tag = soup.find("meta", attrs={"name": "description"})
@@ -119,7 +130,11 @@ class URLManager:
                 description_content = description_tag["content"].strip()
 
             cur.execute(
-                "INSERT INTO url_checks (url_id, status_code, h1, title, description) "
+                "INSERT INTO url_checks (url_id,"
+                " status_code,"
+                " h1,"
+                " title,"
+                " description) "
                 "VALUES (%s, %s, %s, %s, %s) RETURNING id, created_at;",
                 (
                     id,

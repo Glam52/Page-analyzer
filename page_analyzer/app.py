@@ -32,5 +32,6 @@ def create_check(id):
 def handle_422_error(e):
     return render_template("index.html"), 422
 
+
 if __name__ == "__main__":
     app.run(debug=True)
