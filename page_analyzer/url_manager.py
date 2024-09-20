@@ -4,11 +4,17 @@ from bs4 import BeautifulSoup
 import requests
 from page_analyzer.database import Database
 from urllib.parse import urlparse, urlunparse
+from typing import Optional, List, Tuple
 
 
 class URLManager:
     @staticmethod
-    def normalize_url(url):
+    def normalize_url(url: str) -> str:
+        """
+        Normalize a given URL.
+        :param url (str): The URL to normalize.
+        :return:  Normalized URL with path and query parameters removed.
+        """
         parsed_url = urlparse(url)
         # Игнорируем путь, используем только схему и сетевую часть
         normalized_url = urlunparse(
@@ -24,7 +30,13 @@ class URLManager:
         return normalized_url
 
     @staticmethod
-    def add_url(url):
+    def add_url(url: str) -> Optional[int]:
+        """
+        Add a URL to the database.
+        :param url (str): The URL to add.
+        :return: Optional[int]: Unique identifier of the
+        newly added URL or None if the URL is invalid.
+        """
         if len(url) > 255 or not re.match(r"^https?://", url):
             flash("Некорректный URL")
             return None
@@ -43,9 +55,8 @@ class URLManager:
             return existing_url[0]
 
         cur.execute(
-            "INSERT INTO urls (name)"
-            " VALUES (%s) RETURNING id",
-            (normalized_url,)
+            "INSERT INTO urls (name)" " "
+            "VALUES (%s) RETURNING id", (normalized_url,)
         )
         new_url_id = cur.fetchone()[0]
         conn.commit()
@@ -56,7 +67,11 @@ class URLManager:
         return new_url_id
 
     @staticmethod
-    def list_urls():
+    def list_urls() -> List[Tuple]:
+        """
+        List all URLs from the database.
+        :return: List[Tuple]: List of tuples containing URL details.
+        """
         conn = Database.get_connection()
         cur = conn.cursor()
         cur.execute(
@@ -75,7 +90,12 @@ class URLManager:
         return urls
 
     @staticmethod
-    def get_url(id):
+    def get_url(id: int) -> Optional[Tuple]:
+        """
+        Retrieve details of a specific URL and its checks.
+        :param id: Unique identifier of the URL.
+        :return: URL details and a list of checks or None if not found.
+        """
         conn = Database.get_connection()
         cur = conn.cursor()
         cur.execute("SELECT * FROM urls WHERE id = %s", (id,))
@@ -105,7 +125,13 @@ class URLManager:
         return url, checks
 
     @staticmethod
-    def create_check(id):
+    def create_check(id: int) -> Optional[int]:
+        """
+        Create a new check for a specific URL.
+        :param id: Unique identifier of the URL.
+        :return: Unique identifier of the URL if
+        the check was created or None if not found.
+        """
         conn = Database.get_connection()
         cur = conn.cursor()
         cur.execute("SELECT * FROM urls WHERE id = %s", (id,))
@@ -119,10 +145,10 @@ class URLManager:
             response = requests.get(url)
             response.raise_for_status()
 
-            soup = BeautifulSoup(response.content, "html.parser")
+            soup = BeautifulSoup(response.content,
+                                 "html.parser")
             h1_content = soup.find("h1").text.strip()\
-                if soup.find("h1")\
-                else None
+                if soup.find("h1") else None
             title_content = soup.title.text.strip() if soup.title else None
             description_content = ""
             description_tag = soup.find("meta", attrs={"name": "description"})
