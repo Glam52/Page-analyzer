@@ -8,5 +8,12 @@
       <jdbc-url>jdbc:postgresql://localhost:5432/hexlet</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
+    <data-source source="LOCAL" name="renderDB" uuid="2279c9af-4d29-4d8a-81fc-33ad28e4c00b">
+      <driver-ref>postgresql</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.postgresql.Driver</jdbc-driver>
+      <jdbc-url>jdbc:postgresql://dpg-crn3ss56l47c73a97rng-a:5432/hexlet_428q</jdbc-url>
+      <working-dir>$ProjectFileDir$</working-dir>
+    </data-source>
   </component>
 </project>
