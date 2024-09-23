@@ -5,7 +5,7 @@ import re
 
 class AppViews:
     @staticmethod
-    def home() -> Response:
+    def home() -> str:
         """
         Render the home page.
         :return: Rendered HTML content of the home page.
@@ -13,7 +13,7 @@ class AppViews:
         return render_template("index.html")
 
     @staticmethod
-    def urls() -> Response:
+    def urls() -> str:
         """
         Handle addition and listing of URLs.
         :return: Rendered HTML content of the list of URLs
@@ -34,7 +34,7 @@ class AppViews:
         return render_template("list_urls.html", urls=urls)
 
     @staticmethod
-    def show_url(id: int) -> Response:
+    def show_url(id: int) -> str:
         """
         Display a specific URL and its check details.
         :param id: Unique identifier of the URL.
