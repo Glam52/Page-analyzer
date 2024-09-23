@@ -6,9 +6,6 @@ create table urls
     created_at timestamp default CURRENT_TIMESTAMP
 );
 
-alter table urls
-    owner to postgres;
-
 CREATE TABLE url_checks (
     id SERIAL PRIMARY KEY,
     url_id INTEGER NOT NULL,
