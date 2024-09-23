@@ -1,0 +1,5 @@
+.env
+.github
+/.github/
+/hexlet_code/*
+/tests/*
