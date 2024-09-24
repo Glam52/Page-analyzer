@@ -5,7 +5,7 @@ import requests
 from page_analyzer.database import Database
 from urllib.parse import urlparse, urlunparse
 from typing import Optional, List, Tuple
-
+from page_analyzer.validator import Validate
 
 class URLManager:
     @staticmethod
@@ -37,31 +37,22 @@ class URLManager:
         :return: Optional[int]: Unique identifier of the
         newly added URL or None if the URL is invalid.
         """
-        if len(url) > 255 or not re.match(r"^https?://", url):
-            flash("Некорректный URL")
-            return None
+        #Валидация URL
+        Validate.validate_url(url)
 
         # Нормализация URL
         normalized_url = URLManager.normalize_url(url)
 
-        conn = Database.get_connection()
-        cur = conn.cursor()
+        with Database() as cur:
+            cur.execute("SELECT id FROM urls WHERE name = %s", (normalized_url,))
+            existing_url = cur.fetchone()
 
-        cur.execute("SELECT id FROM urls WHERE name = %s", (normalized_url,))
-        existing_url = cur.fetchone()
+            if existing_url:
+                flash("Страница уже существует")
+                return existing_url[0]
 
-        if existing_url:
-            flash("Страница уже существует")
-            return existing_url[0]
-
-        cur.execute(
-            "INSERT INTO urls (name)" " "
-            "VALUES (%s) RETURNING id", (normalized_url,)
-        )
-        new_url_id = cur.fetchone()[0]
-        conn.commit()
-        cur.close()
-        conn.close()
+            cur.execute("INSERT INTO urls (name) VALUES (%s) RETURNING id", (normalized_url,))
+            new_url_id = cur.fetchone()[0]
 
         flash("Страница успешно добавлена")
         return new_url_id
@@ -72,21 +63,19 @@ class URLManager:
         List all URLs from the database.
         :return: List[Tuple]: List of tuples containing URL details.
         """
-        conn = Database.get_connection()
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT urls.id, "
-            "urls.name, "
-            "MAX(url_checks.created_at) AS last_check, "
-            "MAX(url_checks.status_code) AS status_code "
-            "FROM urls "
-            "LEFT JOIN url_checks ON urls.id = url_checks.url_id "
-            "GROUP BY urls.id "
-            "ORDER BY urls.created_at DESC"
-        )
-        urls = cur.fetchall()
-        cur.close()
-        conn.close()
+        with Database() as cur:
+            cur.execute(
+                "SELECT urls.id, "
+                "urls.name, "
+                "MAX(url_checks.created_at) AS last_check, "
+                "MAX(url_checks.status_code) AS status_code "
+                "FROM urls "
+                "LEFT JOIN url_checks ON urls.id = url_checks.url_id "
+                "GROUP BY urls.id "
+                "ORDER BY urls.created_at DESC"
+            )
+            urls = cur.fetchall()
+
         return urls
 
     @staticmethod
@@ -96,33 +85,29 @@ class URLManager:
         :param id: Unique identifier of the URL.
         :return: URL details and a list of checks or None if not found.
         """
-        conn = Database.get_connection()
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM urls WHERE id = %s", (id,))
-        url = cur.fetchone()
+        with Database() as cur:
+            cur.execute("SELECT * FROM urls WHERE id = %s", (id,))
+            url = cur.fetchone()
 
-        if url is None:
-            return None
+            if url is None:
+                return None
 
-        created_at_formatted = url[2].strftime("%Y-%m-%d")
-        url = (url[0], url[1], created_at_formatted)
+            created_at_formatted = url[2].strftime("%Y-%m-%d")
+            url = (url[0], url[1], created_at_formatted)
 
-        cur.execute(
-            "SELECT id, created_at, status_code, h1, title, description "
-            "FROM url_checks WHERE url_id = %s "
-            "ORDER BY created_at DESC",
-            (id,),
-        )
-        checks = cur.fetchall()
+            cur.execute(
+                "SELECT id, created_at, status_code, h1, title, description "
+                "FROM url_checks WHERE url_id = %s "
+                "ORDER BY created_at DESC",
+                (id,),
+            )
+            checks = cur.fetchall()
 
-        for i in range(len(checks)):
-            checks[i] = list(checks[i])
-            checks[i][1] = checks[i][1].strftime("%Y-%m-%d")
+            for i in range(len(checks)):
+                checks[i] = list(checks[i])
+                checks[i][1] = checks[i][1].strftime("%Y-%m-%d")
 
-        cur.close()
-        conn.close()
-
-        return url, checks
+            return url, checks
 
     @staticmethod
     def create_check(id: int) -> Optional[int]:
@@ -132,54 +117,43 @@ class URLManager:
         :return: Unique identifier of the URL if
         the check was created or None if not found.
         """
-        conn = Database.get_connection()
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM urls WHERE id = %s", (id,))
-        result = cur.fetchone()
+        with Database() as cur:
+            cur.execute("SELECT * FROM urls WHERE id = %s", (id,))
+            result = cur.fetchone()
 
-        if not result:
-            return None
+            if not result:
+                return None
 
-        url = result[1]
-        try:
-            response = requests.get(url)
-            response.raise_for_status()
+            url = result[1]
+            try:
+                response = requests.get(url)
+                response.raise_for_status()
 
-            soup = BeautifulSoup(response.content,
-                                 "html.parser")
-            h1_content = soup.find("h1").text.strip()\
-                if soup.find("h1") else None
-            title_content = soup.title.text.strip() if soup.title else None
-            description_content = ""
-            description_tag = soup.find("meta", attrs={"name": "description"})
-            if description_tag and "content" in description_tag.attrs:
-                description_content = description_tag["content"].strip()
+                soup = BeautifulSoup(response.content, "html.parser")
+                h1_content = soup.find("h1").text.strip() if soup.find("h1") else None
+                title_content = soup.title.text.strip() if soup.title else None
+                description_content = ""
+                description_tag = soup.find("meta", attrs={"name": "description"})
+                if description_tag and "content" in description_tag.attrs:
+                    description_content = description_tag["content"].strip()
 
-            cur.execute(
-                "INSERT INTO url_checks (url_id,"
-                " status_code,"
-                " h1,"
-                " title,"
-                " description) "
-                "VALUES (%s, %s, %s, %s, %s) RETURNING id, created_at;",
-                (
-                    id,
-                    response.status_code,
-                    h1_content,
-                    title_content,
-                    description_content,
-                ),
-            )
-            check_id, created_at = cur.fetchone()
-            flash("Страница успешно проверена")
+                cur.execute(
+                    "INSERT INTO url_checks (url_id, status_code, h1, title, description) "
+                    "VALUES (%s, %s, %s, %s, %s) RETURNING id, created_at;",
+                    (
+                        id,
+                        response.status_code,
+                        h1_content,
+                        title_content,
+                        description_content,
+                    ),
+                )
+                check_id, created_at = cur.fetchone()
+                flash("Страница успешно проверена")
 
-        except requests.RequestException:
-            flash("Произошла ошибка при проверке")
-        except Exception as e:
-            flash(f"Произошла неожиданная ошибка: {str(e)}")
-        finally:
-            conn.commit()
-            cur.close()
-            conn.close()
+            except requests.RequestException:
+                flash("Произошла ошибка при проверке")
+            except Exception as e:
+                flash(f"Произошла неожиданная ошибка: {str(e)}")
 
         return id
