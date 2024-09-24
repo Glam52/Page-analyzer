@@ -1,4 +1,3 @@
-import re
 from flask import flash
 from bs4 import BeautifulSoup
 import requests
@@ -6,6 +5,7 @@ from page_analyzer.database import Database
 from urllib.parse import urlparse, urlunparse
 from typing import Optional, List, Tuple
 from page_analyzer.validator import Validate
+
 
 class URLManager:
     @staticmethod
@@ -37,10 +37,8 @@ class URLManager:
         :return: Optional[int]: Unique identifier of the
         newly added URL or None if the URL is invalid.
         """
-        #Валидация URL
-        Validate.validate_url(url)
+        Validate.validate_url(url)  # Url Validation
 
-        # Нормализация URL
         normalized_url = URLManager.normalize_url(url)
 
         with Database() as cur:
@@ -51,7 +49,9 @@ class URLManager:
                 flash("Страница уже существует")
                 return existing_url[0]
 
-            cur.execute("INSERT INTO urls (name) VALUES (%s) RETURNING id", (normalized_url,))
+            cur.execute(
+                "INSERT INTO urls (name) VALUES (%s) RETURNING id", (normalized_url,)
+            )
             new_url_id = cur.fetchone()[0]
 
         flash("Страница успешно добавлена")
