@@ -13,6 +13,17 @@ class AppViews:
         return render_template("index.html")
 
     @staticmethod
+    def validate_url(url: str) -> None:
+        """
+        Validate the provided URL.
+        :param url: URL string to validate.
+        :raises: Abort with status code 422 if the URL is invalid.
+        """
+        if not re.match(r"^(?:http|ftp)s?://", url):
+            flash("Некорректный URL")  # Добавляем флеш-сообщение
+            abort(422)  # Генерируем ошибку 422
+
+    @staticmethod
     def urls() -> str:
         """
         Handle addition and listing of URLs.
@@ -22,9 +33,7 @@ class AppViews:
         if request.method == "POST":
             url = request.form["url"]
             # Проверка на валидность URL
-            if not re.match(r"^(?:http|ftp)s?://", url):
-                flash("Некорректный URL")  # Добавляем флеш-сообщение
-                abort(422)  # Генерируем ошибку 422
+            AppViews.validate_url(url)
 
             new_url_id = URLManager.add_url(url)
             if new_url_id:
