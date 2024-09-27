@@ -3,32 +3,11 @@ from bs4 import BeautifulSoup
 import requests
 from page_analyzer.database import Database
 from urllib.parse import urlparse, urlunparse
-from typing import Optional, List, Tuple
+from typing import Optional
 from page_analyzer.validator import Validate
 
 
 class URLManager:
-    @staticmethod
-    def normalize_url(url: str) -> str:
-        """
-        Normalize a given URL.
-        :param url (str): The URL to normalize.
-        :return:  Normalized URL with path and query parameters removed.
-        """
-        parsed_url = urlparse(url)
-        # Игнорируем путь, используем только схему и сетевую часть
-        normalized_url = urlunparse(
-            (
-                parsed_url.scheme,
-                parsed_url.netloc,
-                "",  # путь игнорируется
-                "",
-                "",
-                "",  # параметры, запросы, фрагменты очищены
-            )
-        )
-        return normalized_url
-
     @staticmethod
     def add_url(url: str) -> Optional[int]:
         """
@@ -58,7 +37,7 @@ class URLManager:
         return new_url_id
 
     @staticmethod
-    def list_urls() -> List[Tuple]:
+    def list_urls() -> list[tuple]:
         """
         List all URLs from the database.
         :return: List[Tuple]: List of tuples containing URL details.
@@ -74,12 +53,12 @@ class URLManager:
                 "GROUP BY urls.id "
                 "ORDER BY urls.created_at DESC"
             )
-            urls: List[Tuple] = cur.fetchall()
+            urls: list[tuple] = cur.fetchall()
 
         return urls
 
     @staticmethod
-    def get_url(id: int) -> Optional[Tuple]:
+    def get_url(id: int) -> Optional[tuple]:
         """
         Retrieve details of a specific URL and its checks.
         :param id: Unique identifier of the URL.
