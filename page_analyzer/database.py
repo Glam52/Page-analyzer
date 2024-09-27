@@ -1,33 +1,25 @@
 import psycopg2
-from page_analyzer.config import Config
+from psycopg2.extras import NamedTupleCursor
+from typing import Any
+
 
 
 class Database:
-    @staticmethod
-    def get_connection() -> psycopg2.extensions.connection:
-        """
-        Get a database connection.
-        :return: Database connection object.
-        """
-        return psycopg2.connect(Config.DATABASE_URL)
+    def __init__(self, database_url: str):
+        self.database_url: str = database_url
 
-    @classmethod
-    def __enter__(cls):
-        """
-        Context manager entry to get a database connection.
-        """
-        cls.connection = cls.get_connection()
-        cls.cursor = cls.connection.cursor()
-        return cls.cursor
+    def __get_connection(self):
+        return psycopg2.connect(self.database_url)
 
-    @classmethod
-    def __exit__(cls, exc_type, exc_val, exc_tb):
-        """
-        Context manager exit to commit changes and close the connection.
-        """
-        if exc_type is not None:
-            cls.connection.rollback()
-        else:
-            cls.connection.commit()
-        cls.cursor.close()
-        cls.connection.close()
+    def fetch_val(self, query: str) -> Any:
+        with self.__get_connection() as conn:
+            with conn.cursor(cursor_factory=NamedTupleCursor) as cursor:
+                cursor.execute(query)
+                return cursor.fetchone()
+
+    def fetch_many(self, query: str) -> list[Any]:
+        with self.__get_connection() as conn:
+            with conn.cursor(cursor_factory=NamedTupleCursor) as cursor:
+                cursor.execute(query)
+                return cursor.fetchall()
+

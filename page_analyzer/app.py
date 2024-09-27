@@ -13,7 +13,7 @@ def home() -> Response:
     Render the home page.
     :return: Response: Rendered HTML content of the home page.
     """
-    return AppViews.home()
+    return render_template("index.html")
 
 
 @app.route("/urls", methods=["GET", "POST"])

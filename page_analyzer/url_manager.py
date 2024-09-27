@@ -74,7 +74,7 @@ class URLManager:
                 "GROUP BY urls.id "
                 "ORDER BY urls.created_at DESC"
             )
-            urls = cur.fetchall()
+            urls: List[Tuple] = cur.fetchall()
 
         return urls
 
