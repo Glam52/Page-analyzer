@@ -1,7 +1,6 @@
 import psycopg2
 from psycopg2.extras import NamedTupleCursor
-from typing import Any
-
+from typing import Any, Optional
 
 
 class Database:
@@ -11,10 +10,10 @@ class Database:
     def __get_connection(self):
         return psycopg2.connect(self.database_url)
 
-    def fetch_val(self, query: str) -> Any:
+    def fetch_val(self, query: str, args: Optional[tuple] = None) -> Any:
         with self.__get_connection() as conn:
             with conn.cursor(cursor_factory=NamedTupleCursor) as cursor:
-                cursor.execute(query)
+                cursor.execute(query, args)
                 return cursor.fetchone()
 
     def fetch_many(self, query: str) -> list[Any]:
@@ -22,4 +21,3 @@ class Database:
             with conn.cursor(cursor_factory=NamedTupleCursor) as cursor:
                 cursor.execute(query)
                 return cursor.fetchall()
-

@@ -1,138 +1,77 @@
-from flask import flash
-from bs4 import BeautifulSoup
-import requests
 from page_analyzer.database import Database
-from urllib.parse import urlparse, urlunparse
-from typing import Optional
-from page_analyzer.validator import Validate
+from datetime import datetime
+from config import Config
+import psycopg2
+from url import UrlId, Url, UrlWithLastCheck
+from exception import InvalidUrl
+from validator import Validate
 
 
 class URLManager:
-    @staticmethod
-    def add_url(url: str) -> Optional[int]:
-        """
-        Add a URL to the database.
-        :param url (str): The URL to add.
-        :return: Optional[int]: Unique identifier of the
-        newly added URL or None if the URL is invalid.
-        """
-        Validate.validate_url(url)  # Url Validation
+    def __init__(self):
+        self.database = Database(Config.DATABASE_URL)
+        self.validator = Validate()
 
-        normalized_url = URLManager.normalize_url(url)
-
-        with Database() as cur:
-            cur.execute("SELECT id FROM urls WHERE name = %s", (normalized_url,))
-            existing_url = cur.fetchone()
-
-            if existing_url:
-                flash("Страница уже существует")
-                return existing_url[0]
-
-            cur.execute(
-                "INSERT INTO urls (name) VALUES (%s) RETURNING id", (normalized_url,)
-            )
-            new_url_id = cur.fetchone()[0]
-
-        flash("Страница успешно добавлена")
-        return new_url_id
-
-    @staticmethod
-    def list_urls() -> list[tuple]:
-        """
-        List all URLs from the database.
-        :return: List[Tuple]: List of tuples containing URL details.
-        """
-        with Database() as cur:
-            cur.execute(
-                "SELECT urls.id, "
-                "urls.name, "
-                "MAX(url_checks.created_at) AS last_check, "
-                "MAX(url_checks.status_code) AS status_code "
-                "FROM urls "
-                "LEFT JOIN url_checks ON urls.id = url_checks.url_id "
-                "GROUP BY urls.id "
-                "ORDER BY urls.created_at DESC"
-            )
-            urls: list[tuple] = cur.fetchall()
-
-        return urls
-
-    @staticmethod
-    def get_url(id: int) -> Optional[tuple]:
-        """
-        Retrieve details of a specific URL and its checks.
-        :param id: Unique identifier of the URL.
-        :return: URL details and a list of checks or None if not found.
-        """
-        with Database() as cur:
-            cur.execute("SELECT * FROM urls WHERE id = %s", (id,))
-            url = cur.fetchone()
-
-            if url is None:
-                return None
-
-            created_at_formatted = url[2].strftime("%Y-%m-%d")
-            url = (url[0], url[1], created_at_formatted)
-
-            cur.execute(
-                "SELECT id, created_at, status_code, h1, title, description "
-                "FROM url_checks WHERE url_id = %s "
-                "ORDER BY created_at DESC",
-                (id,),
-            )
-            checks = cur.fetchall()
-
-            for i in range(len(checks)):
-                checks[i] = list(checks[i])
-                checks[i][1] = checks[i][1].strftime("%Y-%m-%d")
-
-            return url, checks
-
-    @staticmethod
-    def create_check(id: int) -> Optional[int]:
-        """
-        Create a new check for a specific URL.
-        :param id: Unique identifier of the URL.
-        :return: Unique identifier of the URL if
-        the check was created or None if not found.
-        """
-        with Database() as cur:
-            cur.execute("SELECT * FROM urls WHERE id = %s", (id,))
-            result = cur.fetchone()
-
-            if not result:
-                return None
-
-            url = result[1]
+    def create_url(self, url: str) -> UrlId | None:
+        if self.validator.validate_url(url):
+            normalized = self.validator.normalize(url)
             try:
-                response = requests.get(url)
-                response.raise_for_status()
+                query = (f"INSERT INTO urls (name, created_at) "
+                         f"VALUES ('{normalized}',"
+                         f" '{datetime.now()}') RETURNING id;")
+                returned = self.database.fetch_val(query=query)
+            except psycopg2.IntegrityError as exc:
+                raise InvalidUrl(detail="Страница уже существует") from exc
+            else:
+                return returned.id
+        else:
+            raise InvalidUrl(detail="Некорректный URL")
 
-                soup = BeautifulSoup(response.content, "html.parser")
-                h1_content = soup.find("h1").text.strip() if soup.find("h1") else None
-                title_content = soup.title.text.strip() if soup.title else None
-                description_content = ""
-                description_tag = soup.find("meta", attrs={"name": "description"})
-                if description_tag and "content" in description_tag.attrs:
-                    description_content = description_tag["content"].strip()
+    def list_urls(self) -> list[Url]:
+        query = """
+        SELECT
+            u.id,
+            u.name,
+            u.created_at,
+            uc.status_code
+        FROM
+            urls u
+        LEFT JOIN
+            url_checks uc ON u.id = uc.url_id
+        ORDER BY
+            u.created_at DESC;
+        """
+        returned_urls = self.database.fetch_many(query=query)
 
-                cur.execute(
-                    "INSERT INTO url_checks (url_id, status_code, h1, title, description) "
-                    "VALUES (%s, %s, %s, %s, %s) RETURNING id, created_at;",
-                    (
-                        id,
-                        response.status_code,
-                        h1_content,
-                        title_content,
-                        description_content,
-                    ),
-                )
-                check_id, created_at = cur.fetchone()
-                flash("Страница успешно проверена")
+        return [
+            UrlWithLastCheck(
+                id=url[0],  # id из таблицы urls
+                name=url[1],  # name из таблицы urls
+                created_at=url[2],  # created_at из таблицы urls
+                status_code=url[3],  # status_code из таблицы url_checks
+            )
+            for url in returned_urls
+        ]
 
-            except requests.RequestException:
-                flash("Произошла ошибка при проверке")
-            except Exception as e:
-                flash(f"Произошла неожиданная ошибка: {str(e)}")
+    # url_manager.py, метод get_url
+    def get_url(self, id: int):
+        if not isinstance(id, int):
+            return None
 
-        return id
+        query = f"SELECT id, name, created_at FROM urls WHERE id = {id};"
+        result = self.database.fetch_val(query)
+        if result is None:
+            return None
+        return (result.id, result.name,
+                result.created_at, self.get_checks_for_url(id))
+
+    def get_checks_for_url(self, url_id: int):
+        query = f"SELECT * FROM url_checks WHERE url_id = {url_id};"
+        checks = self.database.fetch_many(query)  # Передаем только запрос
+        return checks
+
+    def get_existing_urls(self, url: str) -> UrlId | None:
+        normalized = self.validator.normalize(url)
+        query = f"SELECT id FROM urls WHERE name = '{normalized}';"
+        result = self.database.fetch_val(query=query)
+        return result.id if result else None

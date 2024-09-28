@@ -1,60 +1,74 @@
-from flask import Flask, render_template, Response
+# app.py
+from flask import (Flask, render_template,
+                   Response, redirect, abort, request, flash)
 from page_analyzer.config import Config
-from page_analyzer.views import AppViews
+from validator import Validate
+from url_manager import URLManager
+from check import Check
+from exception import InvalidUrl
 
 
 app = Flask(__name__)
 app.config.from_object(Config)
 
+url_manager = URLManager()
+
 
 @app.route("/")
 def home() -> Response:
-    """
-    Render the home page.
-    :return: Response: Rendered HTML content of the home page.
-    """
     return render_template("index.html")
 
 
 @app.route("/urls", methods=["GET", "POST"])
-def urls() -> Response:
-    """
-    Handle URL addition and listing
-    :return: Response: Rendered HTML content
-    of the URLs list or redirect to a newly added URL.
-    """
-    return AppViews.urls()
+def urls() -> str:
+    if request.method == "POST":
+        url = request.form["url"]
+
+        validator = Validate()
+
+        valid = validator.validate_url(url)
+        if not valid:
+            flash("Некорректный URL")
+            return render_template("index.html"), 422
+        try:
+            new_url_id = url_manager.create_url(url)
+            if new_url_id:
+                flash("Страница успешно добавлена")
+                return redirect(f"/urls/{new_url_id}")
+        except InvalidUrl as exc:
+            flash(str(exc.detail))
+            existing_url = url_manager.get_existing_urls(url)
+            if existing_url:
+                return redirect(f"/urls/{existing_url}")
+
+    urls = url_manager.list_urls()
+    return render_template("list_urls.html", urls=urls)
 
 
 @app.route("/urls/<int:id>")
-def show_url(id: int) -> Response:
-    """
-    Display details of a specific URL.
-    :param id (int): Unique identifier of the URL.
-    :return: Response: Rendered HTML content showing the details of the URL.
-    """
-    return AppViews.show_url(id)
+def show_url(id: int) -> str:
+    data = url_manager.get_url(id)
+    if data is None:
+        abort(404)
+
+    url_id, url_name, created_at, checks = data
+    return render_template(
+        "show_url.html", url=(url_id, url_name, created_at), checks=checks
+    )
 
 
 @app.route("/urls/<int:id>/checks", methods=["POST"])
-def create_check(id: int) -> Response:
-    """
+def create_check(id: int):
+    print(f"Проверка ID: {id}")
+    check_instance = Check(url_manager.database)
+    flash("Страница успешно проверена")  #
+    if not check_instance.create_check(id):
+        abort(404)
+    return redirect(f"/urls/{id}")
 
-    :param id (int): Unique identifier of the URL.
-    :return: Response: Redirects to the URL's detail page
-    after creating the check.
-    """
-    return AppViews.create_check(id)
 
-
-# Обработчик для ошибки 422
 @app.errorhandler(422)
 def handle_422_error(e: Exception) -> tuple:
-    """
-    Handle 422 error.
-    :param e (Exception): Exception raised.
-    :return: tuple: Rendered HTML content and HTTP status code 422.
-    """
     return render_template("index.html"), 422
 
 
