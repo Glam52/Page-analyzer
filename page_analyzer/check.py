@@ -1,8 +1,8 @@
 import requests
 from bs4 import BeautifulSoup
 from typing import Optional
-from database import Database
-from exception import InvalidCheck
+from .database import Database
+from .exception import InvalidCheck
 
 
 class Check:

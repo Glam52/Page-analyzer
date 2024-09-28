@@ -2,10 +2,10 @@
 from flask import (Flask, render_template,
                    Response, redirect, abort, request, flash)
 from page_analyzer.config import Config
-from validator import Validate
-from url_manager import URLManager
-from check import Check
-from exception import InvalidUrl
+from .validator import Validate
+from .url_manager import URLManager
+from .check import Check
+from .exception import InvalidUrl
 
 
 app = Flask(__name__)

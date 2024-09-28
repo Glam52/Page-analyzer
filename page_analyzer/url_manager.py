@@ -1,10 +1,10 @@
 from page_analyzer.database import Database
 from datetime import datetime
-from config import Config
+from .config import Config
 import psycopg2
-from url import UrlId, Url, UrlWithLastCheck
-from exception import InvalidUrl
-from validator import Validate
+from .url import UrlId, Url, UrlWithLastCheck
+from .exception import InvalidUrl
+from .validator import Validate
 
 
 class URLManager:
