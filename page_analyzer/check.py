@@ -51,7 +51,5 @@ class Check:
 
         except requests.RequestException:
             raise InvalidCheck("Произошла ошибка при проверке")
-        except Exception as e:
-            raise InvalidCheck(f"Произошла неожиданная ошибка: {str(e)}")
 
         return check_id  # Возвращаем идентификатор проверки

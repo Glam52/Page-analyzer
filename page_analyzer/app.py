@@ -5,7 +5,7 @@ from page_analyzer.config import Config
 from .validator import Validate
 from .url_manager import URLManager
 from .check import Check
-from .exception import InvalidUrl
+from .exception import InvalidUrl, InvalidCheck
 
 
 app = Flask(__name__)
@@ -58,17 +58,21 @@ def show_url(id: int) -> str:
 
 
 @app.route("/urls/<int:id>/checks", methods=["POST"])
-def create_check(id: int):
-    print(f"Проверка ID: {id}")
+def create_check(id: int) -> str:
     check_instance = Check(url_manager.database)
-    flash("Страница успешно проверена")  #
-    if not check_instance.create_check(id):
-        abort(404)
+    try:
+        if not check_instance.create_check(id):
+            abort(404)
+        flash("Страница успешно проверена")
+    except InvalidCheck as exc:
+        flash(str(exc))  # Здесь сохраняем сообщение об ошибке
+        return redirect(f"/urls/{id}")
+
     return redirect(f"/urls/{id}")
 
 
 @app.errorhandler(422)
-def handle_422_error(e: Exception) -> tuple:
+def handle_422_error(e) -> tuple:
     return render_template("index.html"), 422
 
 
